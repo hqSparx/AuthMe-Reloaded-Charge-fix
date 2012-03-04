@@ -229,7 +229,7 @@ public class FileCache {
                      	charge.setInt("charge", Integer.parseInt(in[k+1]));
             
                      	stacka[i].getHandle().setTag(charge);
-                      	ConsoleLogger.info("CHARGE FOUND! " + charge.getInt("charge"));
+                 //     ConsoleLogger.info("CHARGE FOUND! " + charge.getInt("charge"));
                              }
                              else{
                              stacka[i].addUnsafeEnchantment(e.getByName(in[k]) ,Integer.parseInt(in[k+1]));

@@ -109,7 +109,7 @@ public class LoginCommand implements CommandExecutor {
      						charge = arm[i].getHandle().getTag().getInt("charge");
      						}
      						catch(Exception e){}
-     					if(charge > 0) {;
+     					if(charge > 0) {
      					//set NBTTagCompound (where charge is stored) @ arm
      					CraftItemStack ICItem = (CraftItemStack) player.getInventory().getArmorContents()[i];
      					ICItem.getHandle().setTag(arm[i].getHandle().getTag());
