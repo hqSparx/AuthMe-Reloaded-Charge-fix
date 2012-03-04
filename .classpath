@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="D:/idiamonds/craftbukkit-1.1-R4.jar"/>
+	<classpathentry kind="lib" path="D:/src/Vault.jar"/>
+	<classpathentry kind="lib" path="D:/src/Citizens1.1.5/Citizens.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
