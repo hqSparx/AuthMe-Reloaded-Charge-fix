@@ -1,12 +1,13 @@
 name: AuthMe
-author: whoami
+author: darkwarriros
 description: AuthMe prevents people, which aren't logged in, from doing stuff like placing blocks, moving, typing commands or seeing the inventory of the current player.
 main: uk.org.whoami.authme.AuthMe
-version: 2.5.1
+version: 2.6.5
+softdepend: [Vault]
 commands:
     register:
         description: Register an account
-        usage: /register password
+        usage: /register password confirmpassword
     login:
         description: Login into a account
         usage: /login password
@@ -21,7 +22,7 @@ commands:
         usage: /unregister password
     authme:
         description: AuthMe op commands
-        usage: '/authme reload|register playername password|changepassword playername password|unregister playername'
+        usage: '/authme reload|register playername password|changepassword playername password|unregister playername|version'
 permissions:
     authme.player.*:
         description: Gives access to all authme player commands
@@ -31,7 +32,7 @@ permissions:
             authme.login: true
             authme.changepassword: true
             authme.logout: true
-            authme.unregister: true   
+            authme.unregister: true
     authme.admin.*:
          description: Gives access to all authme admin commands
          children:
@@ -52,6 +53,9 @@ permissions:
     authme.logout:
         description: Logout
         default: true
+    authme.allow2accounts:
+        description: allow more accounts for same ip
+        default: false
     authme.unregister:
         description: unregister your account
         default: true

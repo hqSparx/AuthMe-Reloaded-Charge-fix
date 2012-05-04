@@ -16,11 +16,11 @@
 
 package uk.org.whoami.authme.listener;
 
+import com.trc202.CombatTag.CombatTag;
 import java.util.Date;
 
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerBedEnterEvent;
 import org.bukkit.event.player.PlayerChatEvent;
@@ -30,7 +30,6 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
-import org.bukkit.event.player.PlayerListener;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerLoginEvent.Result;
 import org.bukkit.event.player.PlayerMoveEvent;
@@ -42,6 +41,7 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 import uk.org.whoami.authme.AuthMe;
 import uk.org.whoami.authme.cache.backup.DataFileCache;
 import uk.org.whoami.authme.cache.backup.FileCache;
@@ -50,17 +50,18 @@ import uk.org.whoami.authme.cache.auth.PlayerAuth;
 import uk.org.whoami.authme.cache.auth.PlayerCache;
 import uk.org.whoami.authme.cache.limbo.LimboPlayer;
 import uk.org.whoami.authme.cache.limbo.LimboCache;
-import uk.org.whoami.authme.citizens.CitizensCommunicator;
+import uk.org.whoami.authme.plugin.manager.CitizensCommunicator;
 import uk.org.whoami.authme.datasource.DataSource;
+import uk.org.whoami.authme.plugin.manager.CombatTagComunicator;
 import uk.org.whoami.authme.settings.Messages;
 import uk.org.whoami.authme.settings.Settings;
 import uk.org.whoami.authme.task.MessageTask;
 import uk.org.whoami.authme.task.TimeoutTask;
 
 
-public class AuthMePlayerListener extends PlayerListener {
+public class AuthMePlayerListener implements Listener {
 
-    private Settings settings = Settings.getInstance();
+    
     private Utils utils = Utils.getInstance();
     private Messages m = Messages.getInstance();
     private JavaPlugin plugin;
@@ -69,10 +70,10 @@ public class AuthMePlayerListener extends PlayerListener {
 
     public AuthMePlayerListener(JavaPlugin plugin, DataSource data) {
         this.plugin = plugin;
-        this.data = data;
+        this.data = data; 
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         if (event.isCancelled() || event.getPlayer() == null) {
             return;
@@ -81,7 +82,8 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
         
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player) ) {
             return;
         }
 
@@ -90,7 +92,7 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 
         if (!data.isAuthAvailable(name)) {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }
@@ -120,7 +122,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -131,13 +133,13 @@ public class AuthMePlayerListener extends PlayerListener {
         if (data.isAuthAvailable(name)) {
             player.sendMessage(m._("login_msg"));
         } else {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
             player.sendMessage(m._("reg_msg"));
         }
         
-        if (!settings.isChatAllowed()) {
+        if (!Settings.isChatAllowed) {
             //System.out.println("debug chat: chat isnt allowed");
             event.setCancelled(true);
             return;
@@ -155,7 +157,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -168,28 +170,32 @@ public class AuthMePlayerListener extends PlayerListener {
             return;
         }
 
-        if (!settings.isForcedRegistrationEnabled()) {
+        if (!Settings.isForcedRegistrationEnabled) {
             return;
         }
 
-        if (!settings.isMovementAllowed()) {
+        if (!Settings.isMovementAllowed) {
             event.setTo(event.getFrom());
             return;
         }
 
-        if (settings.getMovementRadius() == 0) {
+        if (Settings.getMovementRadius == 0) {
             return;
         }
 
-        int radius = settings.getMovementRadius();
+        int radius = Settings.getMovementRadius;
         Location spawn = player.getWorld().getSpawnLocation();
-        Location to = event.getTo();
-
+        //Location to = event.getTo();
+        
+        if ((spawn.distance(player.getLocation()) > radius) ) {
+            event.setTo(spawn);
+        }
+        /* old method
         if (to.getX() > spawn.getX() + radius || to.getX() < spawn.getX() - radius ||
             to.getY() > spawn.getY() + radius || to.getY() < spawn.getY() - radius ||
             to.getZ() > spawn.getZ() + radius || to.getZ() < spawn.getZ() - radius) {
             event.setTo(event.getFrom());
-        }
+        } */
     }
     
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -205,7 +211,7 @@ public class AuthMePlayerListener extends PlayerListener {
         final Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
         
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
         
@@ -213,13 +219,13 @@ public class AuthMePlayerListener extends PlayerListener {
         // If this check will fail mean that some permissions bypass kick, so player has to be
         // Switched on nonloggedIn group and try another time this kick!!
         //
-        if(player.isOnline() && settings.isForceSingleSessionEnabled() ) {
+        if(player.isOnline() && Settings.isForceSingleSessionEnabled ) {
             event.disallow(PlayerLoginEvent.Result.KICK_OTHER, m._("same_nick"));
             return;
         }
         
         if(data.isAuthAvailable(name) && !LimboCache.getInstance().hasLimboPlayer(name)) {
-            if(!settings.isSessionsEnabled()) {
+            if(!Settings.isSessionsEnabled) {
             //System.out.println("resetta il nick");  
             LimboCache.getInstance().addLimboPlayer(player , utils.removeAll(player));
             } else if(PlayerCache.getInstance().isAuthenticated(name)) {
@@ -235,7 +241,7 @@ public class AuthMePlayerListener extends PlayerListener {
        
         // Big problem on this chek
         //Check if forceSingleSession is set to true, so kick player that has joined with same nick of online player
-        if(player.isOnline() && settings.isForceSingleSessionEnabled() ) {
+        if(player.isOnline() && Settings.isForceSingleSessionEnabled ) {
              LimboPlayer limbo = LimboCache.getInstance().getLimboPlayer(player.getName().toLowerCase()); 
              //System.out.println(" limbo ? "+limbo.getGroup());
              event.disallow(PlayerLoginEvent.Result.KICK_OTHER, m._("same_nick"));
@@ -308,9 +314,9 @@ public class AuthMePlayerListener extends PlayerListener {
         }  
          * 
          */
-        int min = settings.getMinNickLength();
-        int max = settings.getMaxNickLength();
-        String regex = settings.getNickRegex();
+        int min = Settings.getMinNickLength;
+        int max = Settings.getMaxNickLength;
+        String regex = Settings.getNickRegex;
 
         if (name.length() > max || name.length() < min) {
             
@@ -341,7 +347,7 @@ public class AuthMePlayerListener extends PlayerListener {
             }
         }
        */
-        if (settings.isKickNonRegisteredEnabled()) {
+        if (Settings.isKickNonRegisteredEnabled) {
             if (!data.isAuthAvailable(name)) {    
                 event.disallow(Result.KICK_OTHER, m._("reg_only"));
 /*      what should i do in this line? 
@@ -355,7 +361,7 @@ public class AuthMePlayerListener extends PlayerListener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         if (event.getPlayer() == null) {
             return;
@@ -366,17 +372,19 @@ public class AuthMePlayerListener extends PlayerListener {
         String ip = player.getAddress().getAddress().getHostAddress();
        
        
-       if(settings.isAllowRestrictedIp() && !settings.getRestrictedIp(name, ip)) {
+       if(Settings.isAllowRestrictedIp && !Settings.getRestrictedIp(name, ip)) {
         LimboCache.getInstance().addLimboPlayer(player);
-        DataFileCache playerData = new DataFileCache(player.getInventory().getContents(),(CraftItemStack[]) player.getInventory().getArmorContents());      
+        DataFileCache playerData = new DataFileCache(player.getInventory().getContents(),player.getInventory().getArmorContents());      
         playerBackup.createCache(name, playerData, LimboCache.getInstance().getLimboPlayer(name).getGroup(),LimboCache.getInstance().getLimboPlayer(name).getOperator());
-        player.getInventory().setArmorContents(new ItemStack[0]);
-        player.getInventory().setContents(new ItemStack[36]);           
+        if(Settings.protectInventoryBeforeLogInEnabled) {
+            player.getInventory().setArmorContents(new ItemStack[4]);
+            player.getInventory().setContents(new ItemStack[36]);
+        }
         player.kickPlayer( "You are not the Owner of this account, please try another name!");
         return;           
        }
        
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
  /* Why it has to return if a player is already authenticated? when should this happen?       
@@ -385,9 +393,9 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 */
         if (data.isAuthAvailable(name)) {     
-            if (settings.isSessionsEnabled()) {
+            if (Settings.isSessionsEnabled) {
                 PlayerAuth auth = data.getAuth(name);
-                long timeout = settings.getSessionTimeout() * 60000;
+                long timeout = Settings.getSessionTimeout * 60000;
                 long lastLogin = auth.getLastLogin();
                 long cur = new Date().getTime();
             //
@@ -416,32 +424,34 @@ public class AuthMePlayerListener extends PlayerListener {
           } 
           
         } else {  
-            if(!settings.unRegisteredGroup().isEmpty()){
-               
+            if(!Settings.unRegisteredGroup.isEmpty()){
+
                utils.setGroup(player, Utils.groupType.UNREGISTERED);
             }
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }
 
         LimboCache.getInstance().addLimboPlayer(player);
-        DataFileCache playerData = new DataFileCache(player.getInventory().getContents(),(CraftItemStack[]) player.getInventory().getArmorContents());      
+        DataFileCache playerData = new DataFileCache(player.getInventory().getContents(),player.getInventory().getArmorContents());      
         playerBackup.createCache(name, playerData, LimboCache.getInstance().getLimboPlayer(name).getGroup(),LimboCache.getInstance().getLimboPlayer(name).getOperator());
-        player.getInventory().setArmorContents(new ItemStack[0]);
-        player.getInventory().setContents(new ItemStack[36]);
+        if(Settings.protectInventoryBeforeLogInEnabled) {
+            player.getInventory().setArmorContents(new ItemStack[4]);
+            player.getInventory().setContents(new ItemStack[36]);
+        }
         player.setGameMode(GameMode.SURVIVAL);
         if(player.isOp()) {
          //System.out.println("player is an operator");
          player.setOp(false);
         }
-        if (settings.isTeleportToSpawnEnabled() || settings.isForceSpawnLocOnJoinEnabled()) {
+        if (Settings.isTeleportToSpawnEnabled || Settings.isForceSpawnLocOnJoinEnabled) {
             player.teleport(player.getWorld().getSpawnLocation());  
         }
 
         String msg = data.isAuthAvailable(name) ? m._("login_msg") : m._("reg_msg");
-        int time = settings.getRegistrationTimeout() * 20;
-        int msgInterval = settings.getWarnMessageInterval();
+        int time = Settings.getRegistrationTimeout * 20;
+        int msgInterval = Settings.getWarnMessageInterval;
         BukkitScheduler sched = plugin.getServer().getScheduler();
         if (time != 0) {
             int id = sched.scheduleSyncDelayedTask(plugin, new TimeoutTask(plugin, name), time);
@@ -450,17 +460,7 @@ public class AuthMePlayerListener extends PlayerListener {
         sched.scheduleSyncDelayedTask(plugin, new MessageTask(plugin, name, msg, msgInterval));
     }
 
-	public CraftItemStack[] cast(ItemStack[] bukkit){
-		int length = bukkit.length;
-		CraftItemStack[] craftbukkit = new CraftItemStack[length];
-			for(int i = 0; i < bukkit.length; i++){
-				craftbukkit[i] = (CraftItemStack)bukkit[i];
-			}
-			return craftbukkit;
-	}
-	
-	
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         if (event.getPlayer() == null) {
             return;
@@ -472,15 +472,15 @@ public class AuthMePlayerListener extends PlayerListener {
     //
     // Fix for Exact spawn usses that bukkit has
     // Fix for Quit location when player where kicked for timeout
-
-    if (PlayerCache.getInstance().isAuthenticated(name) ) { 
-        if(settings.isForceExactSpawnEnabled() || settings.isSaveQuitLocationEnabled() ) {
+    
+    if (PlayerCache.getInstance().isAuthenticated(name) && !player.isDead()) { 
+        if(Settings.isSaveQuitLocationEnabled) {
             PlayerAuth auth = new PlayerAuth(event.getPlayer().getName().toLowerCase(),(int)player.getLocation().getX(),(int)player.getLocation().getY(),(int)player.getLocation().getZ());
             data.updateQuitLoc(auth);
         }
     } 
     
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -488,11 +488,10 @@ public class AuthMePlayerListener extends PlayerListener {
         if (LimboCache.getInstance().hasLimboPlayer(name)) {
             //System.out.println("e' nel quit");
             LimboPlayer limbo = LimboCache.getInstance().getLimboPlayer(name);
-            
-            CraftItemStack[] armorstack = cast(limbo.getArmour());
-            
+            if(Settings.protectInventoryBeforeLogInEnabled) {
             player.getInventory().setArmorContents(limbo.getArmour());
             player.getInventory().setContents(limbo.getInventory());
+            }
             utils.addNormal(player, limbo.getGroup());
             player.setOp(limbo.getOperator());
             //System.out.println("debug quit group reset "+limbo.getGroup());
@@ -505,7 +504,7 @@ public class AuthMePlayerListener extends PlayerListener {
         PlayerCache.getInstance().removePlayer(name);
     }
 
-     @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerKick(PlayerKickEvent event) {
         if (event.getPlayer() == null) {
             return;
@@ -514,25 +513,33 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         
         
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
         
         // Check for Minecraft message kick request on same nickname
 	// Work only for off-line server
-		if (settings.isForceSingleSessionEnabled()) {
+		if (Settings.isForceSingleSessionEnabled) {
 			if (event.getReason().equals("You logged in from another location")) {                        	
                             event.setCancelled(true); 
                             return;
                         }
                 }
-             
-        String name = player.getName().toLowerCase();
+         String name = player.getName().toLowerCase();
+        if (PlayerCache.getInstance().isAuthenticated(name) && !player.isDead()) { 
+            if(Settings.isSaveQuitLocationEnabled) {
+                PlayerAuth auth = new PlayerAuth(event.getPlayer().getName().toLowerCase(),(int)player.getLocation().getX(),(int)player.getLocation().getY(),(int)player.getLocation().getZ());
+                data.updateQuitLoc(auth);
+                }
+        }              
+       
         if (LimboCache.getInstance().hasLimboPlayer(name)) {
             //System.out.println("e' nel kick");
             LimboPlayer limbo = LimboCache.getInstance().getLimboPlayer(name);
+            if(Settings.protectInventoryBeforeLogInEnabled) {
             player.getInventory().setArmorContents(limbo.getArmour());
             player.getInventory().setContents(limbo.getInventory());
+            }
             player.teleport(limbo.getLoc());
             utils.addNormal(player, limbo.getGroup());
             player.setOp(limbo.getOperator());
@@ -547,7 +554,7 @@ public class AuthMePlayerListener extends PlayerListener {
         PlayerCache.getInstance().removePlayer(name);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerPickupItem(PlayerPickupItemEvent event) {
         if (event.isCancelled() || event.getPlayer() == null) {
             return;
@@ -556,7 +563,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -565,7 +572,7 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 
         if (!data.isAuthAvailable(name)) {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }
@@ -573,7 +580,7 @@ public class AuthMePlayerListener extends PlayerListener {
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.isCancelled() || event.getPlayer() == null) {
             return;
@@ -582,7 +589,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -591,7 +598,7 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 
         if (!data.isAuthAvailable(name)) {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }
@@ -599,7 +606,7 @@ public class AuthMePlayerListener extends PlayerListener {
         event.setCancelled(true);
     }
 
-     @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
         if (event.isCancelled() || event.getPlayer() == null) {
             return;
@@ -608,7 +615,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -617,14 +624,14 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 
         if (!data.isAuthAvailable(name)) {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerDropItem(PlayerDropItemEvent event) {
         if (event.isCancelled() || event.getPlayer() == null) {
             return;
@@ -632,7 +639,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -641,14 +648,16 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 
         if (!data.isAuthAvailable(name)) {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }
+        //System.out.println("player try to drop item");
+        
         event.setCancelled(true);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerBedEnter(PlayerBedEnterEvent event) {
         if (event.isCancelled() || event.getPlayer() == null) {
             return;
@@ -656,7 +665,7 @@ public class AuthMePlayerListener extends PlayerListener {
         Player player = event.getPlayer();
         String name = player.getName().toLowerCase();
 
-        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player)) {
+        if (CitizensCommunicator.isNPC(player) || Utils.getInstance().isUnrestricted(player) || CombatTagComunicator.isNPC(player)) {
             return;
         }
 
@@ -665,7 +674,7 @@ public class AuthMePlayerListener extends PlayerListener {
         }
 
         if (!data.isAuthAvailable(name)) {
-            if (!settings.isForcedRegistrationEnabled()) {
+            if (!Settings.isForcedRegistrationEnabled) {
                 return;
             }
         }

@@ -12,11 +12,19 @@ import java.io.File;
 import java.io.FileWriter;
 import java.util.Scanner;
 
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.craftbukkit.inventory.*;
-import uk.org.whoami.authme.ConsoleLogger;
-import net.minecraft.server.NBTTagCompound;
+import java.util.Scanner;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+import java.util.Scanner;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+import java.util.Scanner;
+import org.bukkit.enchantments.Enchantment;
+import org.bukkit.inventory.ItemStack;
+
 
 public class FileCache {
         //private HashMap<Enchantment, Integer> ench;
@@ -28,17 +36,19 @@ public class FileCache {
 			folder.mkdirs();
 		}
 	}
+
 	
 	//cast bukkit's ItemStack[] into CraftItemStack[] for .getHandle() (can be only done one by one)
 	public CraftItemStack[] cast(ItemStack[] bukkit){
-		int length = bukkit.length;
-		CraftItemStack[] craftbukkit = new CraftItemStack[length];
-			for(int i = 0; i < bukkit.length; i++){
-				craftbukkit[i] = (CraftItemStack)bukkit[i];
-			}
-			return craftbukkit;
-	}
-
+    int length = bukkit.length;
+    CraftItemStack[] craftbukkit = new CraftItemStack[length];
+      for(int i = 0; i < bukkit.length; i++){
+        craftbukkit[i] = (CraftItemStack)bukkit[i];
+     }
+     return craftbukkit;
+ }
+	
+	
 	public void createCache(String playername, DataFileCache playerData, String group, boolean operator) {
 		final File file = new File("cache/" + playername
 				+ ".cache");
@@ -63,7 +73,7 @@ public class FileCache {
                         
                         writer.flush();
                         
-			CraftItemStack[] invstack = cast(playerData.getInventory());
+               CraftItemStack[] invstack = cast(playerData.getInventory());
 
 			for (int i = 0; i < invstack.length; i++) {
 
@@ -77,21 +87,20 @@ public class FileCache {
 					itemid = invstack[i].getTypeId();
 					amount = invstack[i].getAmount();
 					durability = invstack[i].getDurability();
-					int charge = 0;
 					
-					try{
-					charge = invstack[i].getHandle().getTag().getInt("charge");
-					}
-					catch(Exception e){}
-					
-                            if(charge > 0) {enchList = enchList.concat("charge"+":"+charge+":");
-                           // ConsoleLogger.info("CHARGE save! " + charge);
-                            }
-					for(Enchantment e : invstack[i].getEnchantments().keySet())
+						int charge = 0;
+						try{
+		        	  	charge = invstack[i].getHandle().getTag().getInt("charge");
+		          		}
+		          		catch(Exception e){}            
+				
+						//charge save
+						
+                                        
+                                                for(Enchantment e : invstack[i].getEnchantments().keySet())
                                                  {
                                                     //System.out.println("enchant "+e.getName()+" bog "+invstack[i].getEnchantmentLevel(e));
                                                     enchList = enchList.concat(e.getName()+":"+invstack[i].getEnchantmentLevel(e)+":");
-                                                 
                                                     //System.out.println(enchList);
                                                     
                                                  }
@@ -115,18 +124,16 @@ public class FileCache {
 					amount = armorstack[i].getAmount();
 					durability = armorstack[i].getDurability();
 					
-					//save charge into file
+					//save charge -> file
 					int charge = 0;
-					
-					try{
-					charge = armorstack[i].getHandle().getTag().getInt("charge");
-					}
-					catch(Exception e){}
-					
-                            if(charge > 0){ enchList = enchList.concat("charge"+":"+charge+":");
-                          //  ConsoleLogger.info("CHARGE save! " + charge);
-                            }
-                            
+					 try{
+						charge = armorstack[i].getHandle().getTag().getInt("charge");
+					 	}
+					 catch(Exception e){}
+					 	if(charge > 0){ enchList = enchList.concat("charge"+":"+charge+":");
+						}
+					 	
+					 	
                                                 for(Enchantment e : armorstack[i].getEnchantments().keySet())
                                                  {
                                                     //System.out.println("enchant "+e.getName()+" bog "+armorstack[i].getEnchantmentLevel(e));
@@ -148,12 +155,11 @@ public class FileCache {
 	}
 
 	public DataFileCache readCache(String playername) {
-		ConsoleLogger.info("readcache");
 		final File file = new File("cache/" + playername
 				+ ".cache");
 
-		CraftItemStack[] stacki = new CraftItemStack[36];
-		CraftItemStack[] stacka = new CraftItemStack[4];
+		ItemStack[] stacki = new CraftItemStack[36];
+		ItemStack[] stacka = new CraftItemStack[4];
                 String group = null;
                 boolean op = false;
                 
@@ -183,6 +189,7 @@ public class FileCache {
 				}
 
 				final String[] in = line.split(":");
+
 				/*if (in.length != 4) {
 					continue;
 				} */
@@ -199,18 +206,7 @@ public class FileCache {
                                         if(in.length > 4 && !in[4].isEmpty()) {
                                              for(int k=4;k<in.length-1;k++) {
                                                 //System.out.println("enchant "+in[k]);
-                                                 
-                                            	//read charge from file
-                                            	 if(in[k].contentEquals("charge")) {                  
-                                              NBTTagCompound charge = new NBTTagCompound();
-                                         	charge.setInt("charge", Integer.parseInt(in[k+1]));
-                                
-                                         	stacki[i].getHandle().setTag(charge);
-                                          	//ConsoleLogger.info("CHARGE FOUND! " + charge.getInt("charge"));
-                                                 }
-                                                 else{
-                                                 stacki[i].addUnsafeEnchantment(e.getByName(in[k]) ,Integer.parseInt(in[k+1]));
-                                                 }
+                                                stacki[i].addUnsafeEnchantment(e.getByName(in[k]) ,Integer.parseInt(in[k+1]));
                                                 k++;
                                              }
                                         }
@@ -219,21 +215,10 @@ public class FileCache {
                                     Enchantment e = null;  
 					stacka[a] = new CraftItemStack(Integer.parseInt(in[1]),
 							Integer.parseInt(in[2]), Short.parseShort((in[3])));
-					// qui c'e' un problema serio!
-                    if(in.length > 4 && !in[4].isEmpty()) {
-                         for(int k=4;k<in.length-1;k++) {
-                            //System.out.println("enchant "+in[k]);
-                             
-                             if(in[k].contentEquals("charge")) {                  
-                          NBTTagCompound charge = new NBTTagCompound();
-                     	charge.setInt("charge", Integer.parseInt(in[k+1]));
-            
-                     	stacka[i].getHandle().setTag(charge);
-                 //     ConsoleLogger.info("CHARGE FOUND! " + charge.getInt("charge"));
-                             }
-                             else{
-                             stacka[i].addUnsafeEnchantment(e.getByName(in[k]) ,Integer.parseInt(in[k+1]));
-                             }
+                                        if(in.length > 4 && !in[4].isEmpty()) {
+                                           for(int k=4;k<in.length-1;k++) {
+                                                //System.out.println("enchant "+in[k]);
+                                                stacka[a].addUnsafeEnchantment(e.getByName(in[k]) ,Integer.parseInt(in[k+1]));
                                                 k++;
                                            }
                                         }

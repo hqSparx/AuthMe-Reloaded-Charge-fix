@@ -14,11 +14,11 @@ import uk.org.whoami.authme.settings.Settings;
  * @author stefano
  */
 public class Utils {
-     private Settings settings = Settings.getInstance();
+     //private Settings settings = Settings.getInstance();
      private Player player;
      private String currentGroup;
      private static Utils singleton;
-     private String unLoggedGroup = settings.getUnloggedinGroup();
+     private String unLoggedGroup = Settings.getUnloggedinGroup;
   /*   
   public Utils(Player player) {
       this.player = player;
@@ -32,13 +32,13 @@ public class Utils {
             case UNREGISTERED: {
                 String currentGroup = AuthMe.permission.getPrimaryGroup(player);
                 AuthMe.permission.playerRemoveGroup(player, currentGroup);
-                AuthMe.permission.playerAddGroup(player, settings.unRegisteredGroup());
+                AuthMe.permission.playerAddGroup(player, Settings.unRegisteredGroup);
                 break;
             }
             case REGISTERED: {
                 String currentGroup = AuthMe.permission.getPrimaryGroup(player);
                 AuthMe.permission.playerRemoveGroup(player, currentGroup);
-                AuthMe.permission.playerAddGroup(player, settings.getRegisteredGroup());
+                AuthMe.permission.playerAddGroup(player, Settings.getRegisteredGroup);
                 break;
             }                
         }
@@ -54,14 +54,16 @@ public class Utils {
             AuthMe.permission.playerAdd(this.player,"authme.login");
             return true;
         }*/
-        String hasPerm = hasPermOnJoin(player);
+        
+        
         //System.out.println("permissions? "+ hasPerm);
-        if(hasPerm != null ) {
-            AuthMe.permission.playerAddTransient(player, hasPerm);
+        if( !Settings.getJoinPermissions.isEmpty() ) {
+            hasPermOnJoin(player);
         }
-        this.currentGroup = AuthMe.permission.getPrimaryGroup(player);
+        
+        this.currentGroup = AuthMe.permission.getPrimaryGroup(player.getWorld(),player.getName().toString());
         //System.out.println("current grop" + currentGroup);
-        if(AuthMe.permission.playerRemoveGroup(player, currentGroup) && AuthMe.permission.playerAddGroup(player,this.unLoggedGroup)) {
+        if(AuthMe.permission.playerRemoveGroup(player.getWorld(),player.getName().toString(), currentGroup) && AuthMe.permission.playerAddGroup(player.getWorld(),player.getName().toString(),this.unLoggedGroup)) {
             
             return currentGroup;
         }
@@ -78,7 +80,7 @@ public class Utils {
        /* if (AuthMe.permission.playerRemove(this.player, "-*"))
             return true;
        */      
-        if(AuthMe.permission.playerRemoveGroup(player,this.unLoggedGroup) && AuthMe.permission.playerAddGroup(player,group)) {
+        if(AuthMe.permission.playerRemoveGroup(player.getWorld(),player.getName().toString(),this.unLoggedGroup) && AuthMe.permission.playerAddGroup(player.getWorld(),player.getName().toString(),group)) {
         //System.out.println("vecchio "+this.unLoggedGroup+ "nuovo" + group);
             return true;
         
@@ -87,32 +89,36 @@ public class Utils {
     }    
 
     private String hasPermOnJoin(Player player) {
-        if(settings.getJoinPermissions().isEmpty())
-            return null;
-              Iterator<String> iter = settings.getJoinPermissions().iterator();
+       /* if(Settings.getJoinPermissions.isEmpty())
+            return null; */
+              Iterator<String> iter = Settings.getJoinPermissions.iterator();
                 while (iter.hasNext()) {
                     String permission = iter.next();
                  // System.out.println("permissions? "+ permission);
                      
                    if(AuthMe.permission.playerHas(player, permission)){
                      //  System.out.println("player has permissions " +permission);
-                       return permission;
+                       AuthMe.permission.playerAddTransient(player, permission);
                    }
                 }
            return null;
     }
     
     public boolean isUnrestricted(Player player) {
-        if(settings.getUnrestrictedName().isEmpty() || settings.getUnrestrictedName() == null)
+        
+        
+        if(Settings.getUnrestrictedName.isEmpty() || Settings.getUnrestrictedName == null)
             return false;
         
      //   System.out.println("name to escape "+player.getName());
-        if(settings.getUnrestrictedName().contains(player.getName())) {
+        if(Settings.getUnrestrictedName.contains(player.getName())) {
        //     System.out.println("name to escape correctly"+player.getName());
             return true;
         }
         
         return false;
+        
+         
     }
      public static Utils getInstance() {
         
@@ -122,7 +128,11 @@ public class Utils {
     } 
     
     private boolean useGroupSystem() {
-        return settings.isPermissionCheckEnabled();
+        
+        if(Settings.isPermissionCheckEnabled && !Settings.getUnloggedinGroup.isEmpty()) {
+            return true;
+        } return false;
+            
     }
      
     public enum groupType {

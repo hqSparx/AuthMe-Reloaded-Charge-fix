@@ -16,10 +16,9 @@
 
 package uk.org.whoami.authme.cache.limbo;
 
-import org.bukkit.inventory.ItemStack;
-
 import org.bukkit.Location;
-import org.bukkit.craftbukkit.inventory.*;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.inventory.ItemStack;
 
 public class LimboPlayer {
 
@@ -32,31 +31,30 @@ public class LimboPlayer {
     private boolean operator;
     private String group;
 
-    public LimboPlayer(String name, Location loc, org.bukkit.inventory.ItemStack[] inv, org.bukkit.inventory.ItemStack[] arm, int gameMode, boolean operator, String group) {
+    public LimboPlayer(String name, Location loc, ItemStack[] inventory, ItemStack[] armour, int gameMode, boolean operator, String group) {
         this.name = name;
         this.loc = loc;
-        this.inventory = inv;
-        this.armour = arm;
+        this.inventory = inventory;
+        this.armour = armour;
         this.gameMode = gameMode;
         this.operator = operator;
         this.group = group;
         //System.out.println("il gruppo in limboPlayer "+group);
     }
     
-	
     public LimboPlayer(String name, String group) {
         this.name = name;
         this.group = group;
     }
     
 	public CraftItemStack[] cast(ItemStack[] bukkit){
-		int length = bukkit.length;
-		CraftItemStack[] craftbukkit = new CraftItemStack[length];
-			for(int i = 0; i < bukkit.length; i++){
-				craftbukkit[i] = (CraftItemStack)bukkit[i];
-			}
-			return craftbukkit;
-	}
+	    int length = bukkit.length;
+	    CraftItemStack[] craftbukkit = new CraftItemStack[length];
+	      for(int i = 0; i < bukkit.length; i++){
+	        craftbukkit[i] = (CraftItemStack)bukkit[i];
+	     }
+	     return craftbukkit;
+	 }
 	
     public String getName() {
         return name;
@@ -66,9 +64,8 @@ public class LimboPlayer {
         return loc;
     }
 
-    //cast into CraftItemStack[] -> LoginCommand
     public CraftItemStack[] getArmour() {
-        return cast(armour);
+    	return cast(armour);
     }
 
     public CraftItemStack[] getInventory() {

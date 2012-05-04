@@ -47,21 +47,21 @@ public class MySQLDataSource implements DataSource {
     private MiniConnectionPoolManager conPool;
 
     public MySQLDataSource() throws ClassNotFoundException, SQLException {
-        Settings s = Settings.getInstance();
-        this.host = s.getMySQLHost();
-        this.port = s.getMySQLPort();
-        this.username = s.getMySQLUsername();
-        this.password = s.getMySQLPassword();
+        //Settings s = Settings.getInstance();
+        this.host = Settings.getMySQLHost;
+        this.port = Settings.getMySQLPort;
+        this.username = Settings.getMySQLUsername;
+        this.password = Settings.getMySQLPassword;
 
-        this.database = s.getMySQLDatabase();
-        this.tableName = s.getMySQLTablename();
-        this.columnName = s.getMySQLColumnName();
-        this.columnPassword = s.getMySQLColumnPassword();
-        this.columnIp = s.getMySQLColumnIp();
-        this.columnLastLogin = s.getMySQLColumnLastLogin();
-        this.columnSalt = s.getMySQLColumnSalt();
-        this.columnGroup = s.getMySQLColumnGroup();
-        this.nonActivatedGroup = s.getNonActivatedGroup();
+        this.database = Settings.getMySQLDatabase;
+        this.tableName = Settings.getMySQLTablename;
+        this.columnName = Settings.getMySQLColumnName;
+        this.columnPassword = Settings.getMySQLColumnPassword;
+        this.columnIp = Settings.getMySQLColumnIp;
+        this.columnLastLogin = Settings.getMySQLColumnLastLogin;
+        this.columnSalt = Settings.getMySQLColumnSalt;
+        this.columnGroup = Settings.getMySQLColumnGroup;
+        this.nonActivatedGroup = Settings.getNonActivatedGroup;
 
         connect();
         setup();
@@ -113,7 +113,7 @@ public class MySQLDataSource implements DataSource {
             rs.close();
             rs = con.getMetaData().getColumns(null, null, tableName, "x");
             if (!rs.next()) {
-                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN x smallint(6) NOT NULL AFTER "
+                st.executeUpdate("ALTER TABLE " + tableName + " ADD COLUMN x smallint(6) NOT NULL DEFAULT '0' AFTER "
                         + columnLastLogin +" , ADD y smallint(6) NOT NULL DEFAULT '0' AFTER x , ADD z smallint(6) NOT NULL DEFAULT '0' AFTER y;");
             }            
         } finally {
@@ -163,13 +163,18 @@ public class MySQLDataSource implements DataSource {
             rs = pst.executeQuery();
             if (rs.next()) {
                 if (rs.getString(columnIp).isEmpty() ) {
+                    //System.out.println("[Authme Debug] ColumnIp is empty");
                     return new PlayerAuth(rs.getString(columnName), rs.getString(columnPassword), "198.18.0.1", rs.getLong(columnLastLogin), rs.getInt("x"), rs.getInt("y"), rs.getInt("z"));
                 } else {
                         if(!columnSalt.isEmpty()){
+                            //System.out.println("[Authme Debug] column Salt is" + rs.getString(columnSalt));
                             return new PlayerAuth(rs.getString(columnName), rs.getString(columnPassword),rs.getString(columnSalt), rs.getInt(columnGroup), rs.getString(columnIp), rs.getLong(columnLastLogin), rs.getInt("x"), rs.getInt("y"), rs.getInt("z"));
-                        } else
-                    return new PlayerAuth(rs.getString(columnName), rs.getString(columnPassword), rs.getString(columnIp), rs.getLong(columnLastLogin), rs.getInt("x"), rs.getInt("y"), rs.getInt("z"));
-                }
+                        } else {
+                    //System.out.println("[Authme Debug] column Salt is empty");
+                            return new PlayerAuth(rs.getString(columnName), rs.getString(columnPassword), rs.getString(columnIp), rs.getLong(columnLastLogin), rs.getInt("x"), rs.getInt("y"), rs.getInt("z"));
+                       
+                        }
+                 }
             } else {
                 return null;
             }

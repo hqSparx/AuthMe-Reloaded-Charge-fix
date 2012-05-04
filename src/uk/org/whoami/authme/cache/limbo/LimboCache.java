@@ -23,8 +23,6 @@ import org.bukkit.Location;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-
-import uk.org.whoami.authme.ConsoleLogger;
 import uk.org.whoami.authme.cache.backup.FileCache;
 import uk.org.whoami.authme.settings.Settings;
 
@@ -32,13 +30,12 @@ public class LimboCache {
 
     private static LimboCache singleton = null;
     private HashMap<String, LimboPlayer> cache;
-    private Settings settings = Settings.getInstance();
+   //private Settings settings = Settings.getInstance();
     private FileCache playerData = new FileCache();
     
     private LimboCache() {
         this.cache = new HashMap<String, LimboPlayer>();
     }
-    
 
     public void addLimboPlayer(Player player) {
         String name = player.getName().toLowerCase();
@@ -56,8 +53,8 @@ public class LimboCache {
              playerGroup = playerData.readCache(name).getGroup();
              operator = playerData.readCache(name).getOperator();
         } else {
-        inv = player.getInventory().getContents();
-        arm = player.getInventory().getArmorContents();
+        inv =  player.getInventory().getContents();
+        arm =  player.getInventory().getArmorContents();
             
         // check if player is an operator, then save it to ram if cache dosent exist!
         
@@ -70,8 +67,8 @@ public class LimboCache {
 
        
         
-        if(settings.isForceSurvivalModeEnabled()) {
-            if(settings.isResetInventoryIfCreative() && gameMode != 0 ) {
+        if(Settings.isForceSurvivalModeEnabled) {
+            if(Settings.isResetInventoryIfCreative && gameMode != 0 ) {
                player.sendMessage("Your inventory has been cleaned!");
                inv = new CraftItemStack[36];
                arm = new CraftItemStack[4];

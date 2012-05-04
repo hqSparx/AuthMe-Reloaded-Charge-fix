@@ -4,7 +4,10 @@
  */
 package uk.org.whoami.authme.cache.backup;
 
-import org.bukkit.craftbukkit.inventory.CraftItemStack;
+/**
+ *
+ * @author stefano
+ */
 import org.bukkit.inventory.ItemStack;
 
 public class DataFileCache {
@@ -15,14 +18,13 @@ public class DataFileCache {
         private String group;
         private boolean operator;
 
-    	
-	public DataFileCache(ItemStack[] inventory, CraftItemStack[] stacka){
+	public DataFileCache(ItemStack[] inventory, ItemStack[] armor){
 		this.inventory = inventory;
-		this.armor = stacka;
+		this.armor = armor;
                 
 	}
 
-	public DataFileCache(ItemStack[] inventory, CraftItemStack[] armor, String group, boolean operator){
+	public DataFileCache(ItemStack[] inventory, ItemStack[] armor, String group, boolean operator){
 		this.inventory = inventory;
 		this.armor = armor;
                 this.group = group;

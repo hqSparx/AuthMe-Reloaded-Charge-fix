@@ -16,13 +16,24 @@
 
 package uk.org.whoami.authme.commands;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.java.JavaPlugin;
+
+import uk.org.whoami.authme.AuthMe;
 import uk.org.whoami.authme.ConsoleLogger;
 import uk.org.whoami.authme.cache.auth.PlayerAuth;
 import uk.org.whoami.authme.cache.auth.PlayerCache;
@@ -30,11 +41,13 @@ import uk.org.whoami.authme.datasource.DataSource;
 import uk.org.whoami.authme.security.PasswordSecurity;
 import uk.org.whoami.authme.settings.Messages;
 import uk.org.whoami.authme.settings.Settings;
+import uk.org.whoami.authme.settings.SpoutCfg;
 
 public class AdminCommand implements CommandExecutor {
 
     private Messages m = Messages.getInstance();
-    private Settings settings = Settings.getInstance();
+    private SpoutCfg s = SpoutCfg.getInstance();
+    //private Settings settings = Settings.getInstance();
     private DataSource database;
 
     public AdminCommand(DataSource database) {
@@ -44,7 +57,7 @@ public class AdminCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmnd, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("Usage: /authme reload|register playername password|changepassword playername password|unregister playername|purge");
+            sender.sendMessage("Usage: /authme reload|register playername password|changepassword playername password|unregister playername|purge|version");
             return true;
         }
 
@@ -52,7 +65,12 @@ public class AdminCommand implements CommandExecutor {
             sender.sendMessage(m._("no_perm"));
             return true;
         }
-
+        
+        if (args[0].equalsIgnoreCase("version")) {
+            sender.sendMessage("AuthMe Version: "+AuthMe.getInstance().getDescription().getVersion());
+            return true;
+        }
+        
         if (args[0].equalsIgnoreCase("purge")) {
             if (args.length != 2) {
                 sender.sendMessage("Usage: /authme purge <DAYS>");
@@ -71,8 +89,41 @@ public class AdminCommand implements CommandExecutor {
             }
         } else if (args[0].equalsIgnoreCase("reload")) {
             database.reload();
-            settings.reload();
+            
+            //Trying to load config from JAR-Ressources, if config.yml doesn't exist...
+            File newConfigFile = new File("plugins/AuthMe","config.yml");
+            if (!newConfigFile.exists()) {
+            	InputStream fis = getClass().getResourceAsStream("/config.yml");
+            	FileOutputStream fos = null;
+            	try {
+            		fos = new FileOutputStream(newConfigFile);
+            		byte[] buf = new byte[1024];
+            		int i = 0;
+        
+            		while ((i = fis.read(buf)) != -1) {
+            			fos.write(buf, 0, i);
+            		}
+            	} catch (Exception e) {
+            		Logger.getLogger(JavaPlugin.class.getName()).log(Level.SEVERE, "Failed to load config from JAR");
+            	} finally {
+            		try {
+            			if (fis != null) {
+            				fis.close();
+            			}
+            			if (fos != null) {
+            				fos.close();
+            			}
+            		} catch (Exception e) {                         
+            		}
+            	}
+            }
+            YamlConfiguration newConfig = YamlConfiguration.loadConfiguration(newConfigFile);
+            Settings.reloadConfigOptions(newConfig);         
+            //settings.clearDefaults();
+            //setting.load();
+            //setting.reload();
             m.reload();
+            s.reload();
             sender.sendMessage(m._("reload"));
         } else if (args[0].equalsIgnoreCase("register")) {
             if (args.length != 3) {
@@ -82,7 +133,7 @@ public class AdminCommand implements CommandExecutor {
 
             try {
                 String name = args[1].toLowerCase();
-                String hash = PasswordSecurity.getHash(settings.getPasswordHash(), args[2]);
+                String hash = PasswordSecurity.getHash(Settings.getPasswordHash, args[2]);
 
                 if (database.isAuthAvailable(name)) {
                     sender.sendMessage(m._("user_regged"));
@@ -108,7 +159,7 @@ public class AdminCommand implements CommandExecutor {
 
             try {
                 String name = args[1].toLowerCase();
-                String hash = PasswordSecurity.getHash(settings.getPasswordHash(), args[2]);
+                String hash = PasswordSecurity.getHash(Settings.getPasswordHash, args[2]);
 
                 PlayerAuth auth = null;
                 if (PlayerCache.getInstance().isAuthenticated(name)) {
@@ -127,7 +178,7 @@ public class AdminCommand implements CommandExecutor {
                 }
 
                 sender.sendMessage("pwd_changed");
-                ConsoleLogger.info(args[0] + "'s password changed");
+                ConsoleLogger.info(args[1] + "'s password changed");
             } catch (NoSuchAlgorithmException ex) {
                 ConsoleLogger.showError(ex.getMessage());
                 sender.sendMessage(m._("error"));

@@ -43,6 +43,7 @@ import uk.org.whoami.authme.datasource.MySQLDataSource;
 import uk.org.whoami.authme.listener.AuthMeBlockListener;
 import uk.org.whoami.authme.listener.AuthMeEntityListener;
 import uk.org.whoami.authme.listener.AuthMePlayerListener;
+import uk.org.whoami.authme.listener.AuthMeSpoutListener;
 import uk.org.whoami.authme.settings.Messages;
 import uk.org.whoami.authme.settings.Settings;
 import uk.org.whoami.authme.task.MessageTask;
@@ -50,6 +51,7 @@ import uk.org.whoami.authme.task.TimeoutTask;
 
 import net.milkbowl.vault.permission.Permission;
 import org.bukkit.Server;
+import uk.org.whoami.authme.datasource.SqliteDataSource;
 
 public class AuthMe extends JavaPlugin {
 
@@ -57,17 +59,45 @@ public class AuthMe extends JavaPlugin {
     private Settings settings;
     private Utils utils;
     private Messages m;
+	public Management management;
     public static Server server;
     public static Permission permission;
+	private static AuthMe instance;
     
 
     @Override
     public void onEnable() {
-        settings = Settings.getInstance();
+    	instance = this;
+        /*
+         *  Metric part from Hidendra Stats
+         */
+        try {
+        Metrics metrics = new Metrics();
+        metrics.beginMeasuringPlugin(this);
+            } catch (IOException e) {
+            // Failed to submit the stats :-(
+        }
+         
+        settings = new Settings(this);
+        settings.loadConfigOptions();
+        
         m = Messages.getInstance();
+        
         server = getServer();
         
-        switch (settings.getDataSource()) {
+        /*
+         *  Back style on start if avaible
+         */
+        if(Settings.isBackupActivated && Settings.isBackupOnStart) {
+        Boolean Backup = new PerformBackup().PerformBackup();
+        if(Backup) ConsoleLogger.info("Backup Complete");
+            else ConsoleLogger.showError("Error while making Backup");
+        }
+        
+        /*
+         * Backend MYSQL - FILE - SQLITE
+         */
+        switch (settings.getDataSource) {
             case FILE:
                 try {
                     database = new FileDataSource();
@@ -94,32 +124,52 @@ public class AuthMe extends JavaPlugin {
                     return;
                 }
                 break;
+            case SQLITE:
+                try {
+                     database = new SqliteDataSource();
+                } catch (ClassNotFoundException ex) {
+                    ConsoleLogger.showError(ex.getMessage());
+                    this.getServer().getPluginManager().disablePlugin(this);
+                    return;
+                } catch (SQLException ex) {
+                    ConsoleLogger.showError(ex.getMessage());
+                    this.getServer().getPluginManager().disablePlugin(this);
+                    return;
+                }
+                break;
         }
 
-        if (settings.isCachingEnabled()) {
+        if (settings.isCachingEnabled) {
             database = new CacheDataSource(database);
         }
         
+        management =  new Management(database);
+        
         PluginManager pm = getServer().getPluginManager();
-        pm.registerEvents(new AuthMePlayerListener(this, database),this);
+        pm.registerEvents(new AuthMePlayerListener(this,database),this);
         pm.registerEvents(new AuthMeBlockListener(database),this);
         pm.registerEvents(new AuthMeEntityListener(database),this);
+        if (pm.isPluginEnabled("Spout")) 
+        	pm.registerEvents(new AuthMeSpoutListener(database),this);
         
         //Find Permissions
+        if(settings.isPermissionCheckEnabled) {
         RegisteredServiceProvider<Permission> permissionProvider =
                 getServer().getServicesManager().getRegistration(net.milkbowl.vault.permission.Permission.class);
         if (permissionProvider != null)
             permission = permissionProvider.getProvider();
         else {
+            
             ConsoleLogger.showError("Vault and Permissions plugins is needed for enable AuthMe Reloaded!");
-            this.getServer().getPluginManager().disablePlugin(this);            
+            this.getServer().getPluginManager().disablePlugin(this);   
+            }
         }
         
         //System.out.println("[debug perm]"+permission);
         
         this.getCommand("authme").setExecutor(new AdminCommand(database));
         this.getCommand("register").setExecutor(new RegisterCommand(database));
-        this.getCommand("login").setExecutor(new LoginCommand(database));
+        this.getCommand("login").setExecutor(new LoginCommand());
         this.getCommand("changepassword").setExecutor(new ChangePasswordCommand(database));
         this.getCommand("logout").setExecutor(new LogoutCommand(this,database));
         this.getCommand("unregister").setExecutor(new UnregisterCommand(this, database));
@@ -128,15 +178,11 @@ public class AuthMe extends JavaPlugin {
         // Check for correct sintax in config file!
         //
         
-        if(settings.isForceExactSpawnEnabled() && !settings.isSaveQuitLocationEnabled()) {
-            ConsoleLogger.showError("You need to enable SaveQuitLocation if you want to enable ForceExactSpawn");
-            this.getServer().getPluginManager().disablePlugin(this);
-        }
-        if(!settings.isForceSingleSessionEnabled()) {
+        if(!settings.isForceSingleSessionEnabled) {
             ConsoleLogger.info("ATTENTION by disabling ForceSingleSession Your server protection is set to low");
         }
         
-        onReload(this.getServer().getOnlinePlayers());
+        //onReload(this.getServer().getOnlinePlayers());
         ConsoleLogger.info("Authme " + this.getDescription().getVersion() + " enabled");
     }
 
@@ -146,19 +192,29 @@ public class AuthMe extends JavaPlugin {
             database.close();
         }
         //utils = Utils.getInstance();
-       
+        
+        /*
+         *  Back style on start if avaible
+         */
+        if(Settings.isBackupActivated && Settings.isBackupOnStop) {
+        Boolean Backup = new PerformBackup().PerformBackup();
+        if(Backup) ConsoleLogger.info("Backup Complete");
+            else ConsoleLogger.showError("Error while making Backup");
+        }       
         ConsoleLogger.info("Authme " + this.getDescription().getVersion() + " disabled");
     }
 
     private void onReload(Player[] players) {
-        for (Player player : players) {
+      ConsoleLogger.showError("AuthMe dont support /reload command yet, please use /authme relaod");
+        return;
+         /*for (Player player : players) {
             String name = player.getName().toLowerCase();
             String ip = player.getAddress().getAddress().getHostAddress();
 
             boolean authAvail = database.isAuthAvailable(name);
 
             if (authAvail) {
-                if (settings.isSessionsEnabled()) {
+                if (settings.isSessionsEnabled) {
                     PlayerAuth auth = database.getAuth(name);
                     if (auth.getNickname().equals(name) && auth.getIp().equals(ip)) {
                         PlayerCache.getInstance().addPlayer(auth);
@@ -166,9 +222,9 @@ public class AuthMe extends JavaPlugin {
                         break;
                     }
                 }
-            } else if (!settings.isForcedRegistrationEnabled()) {
+            } else if (!settings.isForcedRegistrationEnabled) {
                 break;
-            } else if (settings.isKickNonRegisteredEnabled()) {
+            } else if (settings.isKickNonRegisteredEnabled) {
                 player.kickPlayer(m._("reg_only"));
                 break;
             }
@@ -177,21 +233,25 @@ public class AuthMe extends JavaPlugin {
             player.getInventory().setArmorContents(new ItemStack[0]);
             player.getInventory().setContents(new ItemStack[36]);
 
-            if (settings.isTeleportToSpawnEnabled()) {
+            if (settings.isTeleportToSpawnEnabled) {
                 player.teleport(player.getWorld().getSpawnLocation());
             }
 
             String msg = authAvail ? m._("login_msg") : m._("reg_msg");
-            int time = settings.getRegistrationTimeout() * 20;
-            int msgInterval = settings.getWarnMessageInterval();
+            int time = settings.getRegistrationTimeout * 20;
+            int msgInterval = settings.getWarnMessageInterval;
             BukkitScheduler sched = this.getServer().getScheduler();
             if (time != 0) {
                 int id = sched.scheduleSyncDelayedTask(this, new TimeoutTask(this, name), time);
                 LimboCache.getInstance().getLimboPlayer(name).setTimeoutTaskId(id);
             }
             sched.scheduleSyncDelayedTask(this, new MessageTask(this, name, msg, msgInterval));
-        }
+        } 
+          * */
     }
-  
-  
+    
+	public static AuthMe getInstance() {
+		return instance;
+	}
+   
 }

@@ -30,6 +30,7 @@ import uk.org.whoami.authme.cache.auth.PlayerAuth;
 import uk.org.whoami.authme.cache.auth.PlayerCache;
 import uk.org.whoami.authme.cache.limbo.LimboCache;
 import uk.org.whoami.authme.datasource.DataSource;
+import uk.org.whoami.authme.gui.screens.LoginScreen;
 import uk.org.whoami.authme.settings.Messages;
 import uk.org.whoami.authme.settings.Settings;
 import uk.org.whoami.authme.task.MessageTask;
@@ -38,7 +39,7 @@ import uk.org.whoami.authme.task.TimeoutTask;
 public class LogoutCommand implements CommandExecutor {
 
     private Messages m = Messages.getInstance();
-    private Settings settings = Settings.getInstance();
+    //private Settings settings = Settings.getInstance();
     private JavaPlugin plugin;
     private DataSource database;
     private Utils utils = Utils.getInstance();
@@ -76,14 +77,16 @@ public class LogoutCommand implements CommandExecutor {
         
         LimboCache.getInstance().addLimboPlayer(player , utils.removeAll(player));
         LimboCache.getInstance().addLimboPlayer(player);
-        player.getInventory().setArmorContents(new ItemStack[0]);
-        player.getInventory().setContents(new ItemStack[36]);
-        if (settings.isTeleportToSpawnEnabled()) {
+        if(Settings.protectInventoryBeforeLogInEnabled) {
+            player.getInventory().setArmorContents(new ItemStack[4]);
+            player.getInventory().setContents(new ItemStack[36]);
+        }
+        if (Settings.isTeleportToSpawnEnabled) {
             player.teleport(player.getWorld().getSpawnLocation());
         }
 
-        int delay = settings.getRegistrationTimeout() * 20;
-        int interval = settings.getWarnMessageInterval();
+        int delay = Settings.getRegistrationTimeout * 20;
+        int interval = Settings.getWarnMessageInterval;
         BukkitScheduler sched = sender.getServer().getScheduler();
         if (delay != 0) {
             int id = sched.scheduleSyncDelayedTask(plugin, new TimeoutTask(plugin, name), delay);
@@ -93,6 +96,7 @@ public class LogoutCommand implements CommandExecutor {
 
         player.sendMessage(m._("logout"));
         ConsoleLogger.info(player.getDisplayName() + " logged out");
+
         return true;
     }
 }
